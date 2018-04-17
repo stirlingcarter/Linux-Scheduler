@@ -95,32 +95,23 @@ int findNextPrio(int currPrio)
 }
 int linuxScheduler()
 {
-    //iterate through active list
-    for (int i = 0; i < PRIO_LEVELS; i++){
-        //find first queue with item(s) in it
-        if (activeList[i] != NULL){
-            //set to the first process in the queue
-            int processNumber = activeList[i][0].procNum;
-            //if it has time left, decrement time left and return number
-            if (processes[processNumber].timeLeft > 0){
-                (processes[processNumber].timeLeft)--;
-                return processNumber;
-            }
-            //otherwise, remove the process, add it to the expired list, and reset the time left
-            else{
-                remove(&activeList[i]);
-                processes[processNumber].timeLeft = processes[processNumber].quantum;
-                insert(&expiredList[i], processNumber, (processes[processNumber].quantum));
-            }
-        }
+    if (processes[currProcess].timeLeft > 0){
+        processes[currProcess].timeLeft--;
+        return currProcess;
     }
-    //if this point is reached, activeList is empty and a swap needs to occur
-    printf("SWAP LITSA farfwcs");
-    TNode** tmp = activeList;
-    activeList = expiredList;
-    expiredList = tmp;
-    
-
+    else{
+        processes[currProcess].timeLeft = processes[currProcess].quantum;
+        insert(&expiredList[currPrio], currProcess, processes[currProcess].quantum);
+        int next = findNextPrio(currPrio);
+        if (next == -1){
+            printf("SWAP");
+            TNode** tmp = activeList;
+            activeList = expiredList;
+            expiredList = tmp;
+            return linuxScheduler();
+        }
+        return remove(&activeList[next]);
+    }
 }
 #elif SCHEDULER_TYPE == 1
 
@@ -166,7 +157,7 @@ void timerISR()
 	// a change of processes
 	if(currProcess != prevProcess)
 	{
-
+        
 		// Print process details for LINUX scheduler
 		printf("Time: %d Process: %d Prio Level: %d Quantum : %d\n", timerTick, processes[currProcess].procNum+1,
 			processes[currProcess].prio, processes[currProcess].quantum);
@@ -250,6 +241,7 @@ void startOS()
 	// set the first process
 	currProcess = remove(&activeList[currPrio]);
 
+
 #elif SCHEDULER_TYPE == 1
 	currProcessNode = prioRemove(&readyQueue);
 	currProcess = currProcessNode->procNum;
@@ -322,8 +314,9 @@ int addProcess(int priority)
 	processes[procCount].quantum = findQuantum(priority);
 	processes[procCount].timeLeft = processes[procCount].quantum;
 
-	// Add to the active list
+
 	insert(&activeList[priority], processes[procCount].procNum, processes[procCount].quantum);
+
 	procCount++;
 	return 0;
 }
