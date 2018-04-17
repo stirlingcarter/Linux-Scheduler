@@ -95,22 +95,29 @@ int findNextPrio(int currPrio)
 }
 int linuxScheduler()
 {
+    int k = timerTick;
+    int t = processes[currProcess].timeLeft;
     if (processes[currProcess].timeLeft > 0){
         processes[currProcess].timeLeft--;
         return currProcess;
     }
     else{
+        int w = timerTick;
         processes[currProcess].timeLeft = processes[currProcess].quantum;
         insert(&expiredList[currPrio], currProcess, processes[currProcess].quantum);
         int next = findNextPrio(currPrio);
         if (next == -1){
-            printf("SWAP");
+            printf("\nSWAP\n\n");
             TNode** tmp = activeList;
             activeList = expiredList;
             expiredList = tmp;
-            return linuxScheduler();
+            int nextProc = remove(&activeList[findNextPrio(0)]);
+            processes[nextProc].timeLeft--;
+            return nextProc;
         }
-        return remove(&activeList[next]);
+        int nextProc = remove(&activeList[next]);
+        processes[nextProc].timeLeft--;
+        return nextProc;
     }
 }
 #elif SCHEDULER_TYPE == 1
